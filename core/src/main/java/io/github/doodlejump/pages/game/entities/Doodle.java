@@ -405,7 +405,7 @@ public class Doodle extends TexturedEntity {
             w, h,
             scale,
             breakerBladeRectangle, breakerBladeTexture, breakerBladeSprite,
-            Doodle.getDoodleInstance(), polyline, 1, 140, -90,
+            Doodle.getDoodleInstance(), polyline, 0.25f, 140, -90,
             74
         );
     }

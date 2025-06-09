@@ -19,7 +19,7 @@ public class Application extends ApplicationAdapter implements ApplicationFacade
     public static final int worldW = 480;
     public static final int worldH = 640;
 
-    public static final boolean debug = true;
+    public static final boolean debug = false;
 
     private static Application application;
 

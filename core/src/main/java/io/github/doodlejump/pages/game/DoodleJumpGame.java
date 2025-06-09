@@ -399,12 +399,13 @@ public abstract class DoodleJumpGame implements Page {
     protected void hitByEnemies(List<Enemy> enemies, float delta) {
         List<Projectile> doodleProjectiles = new ArrayList<>(doodle.getAnimatedProjectiles());
         doodleProjectiles.addAll(doodle.getTexturedProjectiles());
+        BreakerBlade breakerBlade = doodle.getBreakerBlade();
+        boolean breakerBladeIsActive = breakerBlade.hit(delta);
         for (Enemy enemy : enemies) {
             for (Projectile doodleProjectile : doodleProjectiles) {
                 hitEnemy(enemy, doodleProjectile);
             }
-            BreakerBlade breakerBlade = doodle.getBreakerBlade();
-            if (breakerBlade.hit(delta) &&
+            if (breakerBladeIsActive &&
                 enemy.isAlive() && breakerBlade.rectangleOverlaps(enemy.getRectangle())) {
                 enemy.takeShoot();
             }

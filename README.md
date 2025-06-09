@@ -6,3 +6,5 @@ This project was generated with a template including simple application launcher
 
 ## Game Preview
 ![Game Preview](preview1.png)
+
+### Controls - arrow keys, weapon selection - number keys.

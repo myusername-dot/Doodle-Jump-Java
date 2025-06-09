@@ -7,6 +7,7 @@ import com.badlogic.gdx.math.Polyline;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Shape2D;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 
 public class MyDebugRenderer {
 

@@ -21,7 +21,7 @@ public class DoodleShurikenProjectile extends GravityAnimatedProjectile {
         setY(currentYPosition);
         timer += delta;
 
-        return y; // ToDo
+        return y;
     }
 
     @Override

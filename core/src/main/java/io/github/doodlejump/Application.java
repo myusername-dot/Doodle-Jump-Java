@@ -3,7 +3,6 @@ package io.github.doodlejump;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.github.doodlejump.pages.Page;
 import io.github.doodlejump.pages.game.debug.MyDebugRenderer;

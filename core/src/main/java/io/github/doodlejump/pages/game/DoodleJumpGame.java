@@ -27,13 +27,15 @@ import io.github.doodlejump.pages.game.entities.effects.WaterSplash;
 import io.github.doodlejump.pages.game.entities.enemies.AnimatedEnemy;
 import io.github.doodlejump.pages.game.entities.platforms.Platform;
 import io.github.doodlejump.pages.game.entities.portals.HallowPortal;
+import io.github.doodlejump.pages.game.entities.portals.Portal;
 import io.github.doodlejump.pages.game.entities.projectiles.AnimatedProjectile;
 import io.github.doodlejump.pages.game.entities.projectiles.TexturedProjectile;
-import io.github.doodlejump.pages.game.entities.weapons.BreakerBlade;
+import io.github.doodlejump.pages.game.entities.weapons.HandWeapon;
 import io.github.doodlejump.pages.game.interfaces.*;
 import io.github.doodlejump.pages.game.worlds.hallow.HallowWorld;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
@@ -61,8 +63,9 @@ public abstract class DoodleJumpGame implements Page {
 
     protected Doodle doodle;
 
-    protected List<Platform> platforms;
-    protected List<AnimatedEffect> effects;
+    protected final List<Platform> platforms;
+    protected final List<AnimatedEffect> effects;
+    protected final List<Portal> portals;
 
     protected boolean onEffects = true;
 
@@ -78,6 +81,9 @@ public abstract class DoodleJumpGame implements Page {
         this.gravity = gravity;
         this.wSpeedConst = wSpeedConst;
         this.score = score;
+        platforms = new ArrayList<>();
+        effects = new ArrayList<>();
+        portals = new ArrayList<>();
     }
 
     protected void createFonts(String fontName) {
@@ -92,8 +98,6 @@ public abstract class DoodleJumpGame implements Page {
     }
 
     protected void prepareDoodle(Texture doodle1Texture, Texture doodle2Texture, Texture doodle3Texture) {
-        effects = new ArrayList<>();
-
         float explosionWidth = 150f;
         float explosionHeight = 150f;
         Rectangle explosionRectangle = createRectangle(
@@ -153,7 +157,6 @@ public abstract class DoodleJumpGame implements Page {
     }
 
     protected void createPlatforms() {
-        platforms = new ArrayList<>();
         float platformY = 0;
         while (platformY < worldH) {
             Platform.createPlatform(world, platforms, score, wSpeedConst, defPlatformH, platformY);
@@ -171,13 +174,15 @@ public abstract class DoodleJumpGame implements Page {
             hallowPortalW / 6f, hallowPortalH / 6f
         );
 
-        return new HallowPortal(
+        HallowPortal hallowPortal = new HallowPortal(
             hallowPortalX, hallowPortalY,
             hallowPortalW, hallowPortalH,
             hallowPortalRectangle,
             hallowPortalAnimation,
             frequencyY, randomFrequencyY
         );
+        portals.add(hallowPortal);
+        return hallowPortal;
     }
 
     @Override
@@ -197,15 +202,15 @@ public abstract class DoodleJumpGame implements Page {
 
         // weapons
         if (Gdx.input.isKeyPressed(Input.Keys.NUM_1)) {
-            doodle.setWeaponType(Doodle.WeaponType.FIREBALL);
+            doodle.setWeapon(Doodle.Weapon.FIREBALL);
         } else if (Gdx.input.isKeyPressed(Input.Keys.NUM_2)) {
-            doodle.setWeaponType(Doodle.WeaponType.SHURIKEN);
+            doodle.setWeapon(Doodle.Weapon.SHURIKEN);
         } else if (Gdx.input.isKeyPressed(Input.Keys.NUM_3)) {
-            doodle.setWeaponType(Doodle.WeaponType.BLAST_LASER);
+            doodle.setWeapon(Doodle.Weapon.BLAST_LASER);
         } else if (Gdx.input.isKeyPressed(Input.Keys.NUM_4)) {
-            doodle.setWeaponType(Doodle.WeaponType.WATER_GUN);
+            doodle.setWeapon(Doodle.Weapon.WATER_GUN);
         } else if (Gdx.input.isKeyPressed(Input.Keys.NUM_5)) {
-            doodle.setWeaponType(Doodle.WeaponType.BREAKER_BLADE);
+            doodle.setWeapon(Doodle.Weapon.BREAKER_BLADE);
         }
     }
 
@@ -228,11 +233,15 @@ public abstract class DoodleJumpGame implements Page {
         }
     }
 
-    protected void hallowPortalLogic(HallowPortal hallowPortal, float worldYSwap) {
-        moveOrSpam(hallowPortal, worldYSwap);
-        if (hallowPortal.rectangleOverlaps(doodle.getRectangle())) {
-            nextPage = new HallowWorld(application, gravity, wSpeedConst, score);
-            isFinished = true;
+    protected void portalsLogic(float worldYSwap) {
+        for (Portal portal : portals) {
+            moveOrSpam(portal, worldYSwap);
+            if (portal.rectangleOverlaps(doodle.getRectangle())) {
+                if (portal instanceof HallowPortal) {
+                    nextPage = new HallowWorld(application, gravity, wSpeedConst, score);
+                    isFinished = true;
+                }
+            }
         }
     }
 
@@ -322,6 +331,14 @@ public abstract class DoodleJumpGame implements Page {
             animatedEntity.getWidth(), animatedEntity.getHeight());
     }
 
+    protected void drawPortals(SpriteBatch spriteBatch) {
+        for (Portal portal : portals) {
+            if (portal.isOnWindow()) {
+                drawAnimation(spriteBatch, portal, timer);
+            }
+        }
+    }
+
     protected void drawAnimatedEnemies(SpriteBatch spriteBatch, float delta, AnimatedEnemy... animatedEnemies) {
         for (AnimatedEnemy animatedEnemy : animatedEnemies) {
             if (animatedEnemy.canDrawWithTimeIncrement(delta)) {
@@ -361,8 +378,8 @@ public abstract class DoodleJumpGame implements Page {
 
         drawAnimatedProjectiles(spriteBatch, doodle.getAnimatedProjectiles());
 
-        if (doodle.getWeaponType() == Doodle.WeaponType.BREAKER_BLADE) {
-            doodle.getBreakerBlade().getSprite().draw(spriteBatch);
+        if (doodle.getWeaponType() == Doodle.WeaponType.HAND) {
+            doodle.getActiveHandWeapon().getSprite().draw(spriteBatch);
         }
     }
 
@@ -399,17 +416,20 @@ public abstract class DoodleJumpGame implements Page {
     protected void hitByEnemies(List<Enemy> enemies, float delta) {
         List<Projectile> doodleProjectiles = new ArrayList<>(doodle.getAnimatedProjectiles());
         doodleProjectiles.addAll(doodle.getTexturedProjectiles());
-        BreakerBlade breakerBlade = doodle.getBreakerBlade();
-        boolean breakerBladeIsActive = breakerBlade.hit(delta);
-        for (Enemy enemy : enemies) {
-            for (Projectile doodleProjectile : doodleProjectiles) {
+        for (Projectile doodleProjectile : doodleProjectiles) {
+            for (Enemy enemy : enemies) {
                 hitEnemy(enemy, doodleProjectile);
             }
-            if (breakerBladeIsActive &&
-                enemy.isAlive() && breakerBlade.rectangleOverlaps(enemy.getRectangle())) {
-                enemy.takeShoot();
+        }
+        Collection<HandWeapon> handWeapons = doodle.getHandWeapons();
+        for (HandWeapon handWeapon : handWeapons) {
+            boolean isWeaponActive = handWeapon.hitIfActive(delta);
+            for (Enemy enemy : enemies) {
+                if (isWeaponActive &&
+                    enemy.isAlive() && handWeapon.rectangleOverlaps(enemy.getRectangle())) {
+                    enemy.takeShoot();
+                }
             }
-
         }
     }
 

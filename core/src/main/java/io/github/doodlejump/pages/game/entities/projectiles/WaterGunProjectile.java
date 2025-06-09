@@ -38,7 +38,7 @@ public class WaterGunProjectile extends GravityTexturedProjectile {
         }
         timer += delta;
 
-        return y; // ToDo
+        return y;
     }
 
     @Override

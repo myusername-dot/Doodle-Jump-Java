@@ -8,7 +8,6 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
-import com.badlogic.gdx.math.Polyline;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.physics.box2d.World;
 import io.github.doodlejump.additional.GifDecoder;
@@ -22,8 +21,7 @@ import io.github.doodlejump.pages.game.entities.weapons.HandWeapon;
 import io.github.doodlejump.pages.game.interfaces.JumpOnIt;
 import io.github.doodlejump.pages.game.shapes.MyPolyline;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 import static io.github.doodlejump.Application.worldH;
 import static io.github.doodlejump.Application.worldW;
@@ -51,6 +49,8 @@ public class Doodle extends TexturedEntity {
     private float hp;
 
     private DoodleMode doodleMode;
+    private DoodleDirection doodleDirection;
+    private Weapon weapon;
     private WeaponType weaponType;
     private JumpType jumpType;
 
@@ -70,8 +70,9 @@ public class Doodle extends TexturedEntity {
 
     private final List<AnimatedProjectile> animatedProjectiles;
     private final List<TexturedProjectile> texturedProjectiles;
+    private final Map<Weapon, HandWeapon> handWeapons;
 
-    private BreakerBlade breakerBlade;
+    private HandWeapon activeHandWeapon;
 
     private final float platformJumpStartSpeed;
     private final float springJumpStartSpeed;
@@ -112,6 +113,7 @@ public class Doodle extends TexturedEntity {
         hp = 10;
         texturedProjectiles = new ArrayList<>();
         animatedProjectiles = new ArrayList<>();
+        handWeapons = new HashMap<>();
         attachedEntities = new ArrayList<>();
     }
 
@@ -146,7 +148,9 @@ public class Doodle extends TexturedEntity {
         this.waterSplashEffect = waterSplashEffect;
         jumpStartY = y;
         doodleMode = DoodleMode.LEFT;
-        weaponType = WeaponType.BLAST_LASER;
+        doodleDirection = DoodleDirection.LEFT;
+        weapon = Weapon.BLAST_LASER;
+        weaponType = WeaponType.GUN;
         jumpType = JumpType.PLATFORM;
         jumpTimer = 0f;
         accelerationLeftTimer = 0f;
@@ -164,9 +168,9 @@ public class Doodle extends TexturedEntity {
         texturedProjectiles.clear();
         animatedProjectiles.clear();
         projectileHelper = new ProjectileHelper(world, rayHandler, 20f, 200f, Color.RED);
-        createBreakerBlade();
+        createHandWeapons();
         attachedEntities.clear();
-        attachedEntities.add(breakerBlade);
+        attachedEntities.addAll(handWeapons.values());
     }
 
     public enum DoodleMode {
@@ -175,13 +179,18 @@ public class Doodle extends TexturedEntity {
         FIRING
     }
 
+    public enum DoodleDirection {
+        LEFT,
+        RIGHT
+    }
+
     public enum JumpType {
         PLATFORM,
         SPRING,
         TRAMPOLINE
     }
 
-    public enum WeaponType {
+    public enum Weapon {
         FIREBALL,
         SHURIKEN,
         BLAST_LASER,
@@ -189,33 +198,40 @@ public class Doodle extends TexturedEntity {
         BREAKER_BLADE
     }
 
+    public enum WeaponType {
+        HAND,
+        GUN
+    }
+
     public void rightDirection(float delta) {
         setTexture(doodle1Texture);
         doodleMode = Doodle.DoodleMode.RIGHT;
+        doodleDirection = DoodleDirection.RIGHT;
         accelerationLeftTimer = 0f;
         accelerationRightTimer += delta;
         float deltaSpeed = (float) (wSpeedConst * 5f * delta * (1f + Math.pow(accelerationRightTimer, 2)));
         wSpeed = MathUtils.clamp(wSpeed + deltaSpeed, -wSpeedConst, wSpeedConst);
-        breakerBlade.setDirection(doodleMode);
+        setDirectionByHandWeapons(doodleDirection);
     }
 
     public void leftDirection(float delta) {
         setTexture(doodle2Texture);
         doodleMode = DoodleMode.LEFT;
+        doodleDirection = DoodleDirection.LEFT;
         accelerationRightTimer = 0f;
         accelerationLeftTimer += delta;
         float deltaSpeed = (float) (wSpeedConst * 5f * delta * (1f + Math.pow(accelerationLeftTimer, 2)));
         wSpeed = MathUtils.clamp(wSpeed - deltaSpeed, -wSpeedConst, wSpeedConst);
-        breakerBlade.setDirection(doodleMode);
+        setDirectionByHandWeapons(doodleDirection);
     }
 
     public void lookingUp() {
-        if (weaponType != WeaponType.BREAKER_BLADE) {
+        if (weaponType == WeaponType.GUN) {
             setTexture(doodle3Texture);
-        } else {
-            if (breakerBlade.getDirection() == DoodleMode.LEFT) {
+        } else if (weaponType == WeaponType.HAND) {
+            if (doodleDirection == DoodleDirection.LEFT) {
                 setTexture(doodle2Texture);
-            } else {
+            } else if (doodleDirection == DoodleDirection.RIGHT) {
                 setTexture(doodle1Texture);
             }
         }
@@ -296,9 +312,9 @@ public class Doodle extends TexturedEntity {
     public void ifIsFiring(float delta) {
         DoodleJumpGame.moveAndRemoveProjectiles(getAnimatedProjectiles(), delta);
         DoodleJumpGame.moveAndRemoveProjectiles(getTexturedProjectiles(), delta);
-        if (doodleMode == DoodleMode.FIRING && weaponType != WeaponType.BREAKER_BLADE) {
+        if (doodleMode == DoodleMode.FIRING && weapon != Weapon.BREAKER_BLADE) {
             if ((int) (projectilesTimer * 5f) >= projectilesCounter) {
-                switch (weaponType) {
+                switch (weapon) {
                     case FIREBALL:
                         newFireballProjectile();
                         break;
@@ -329,6 +345,12 @@ public class Doodle extends TexturedEntity {
                 fireShootIterator.remove();
             }
         }*/
+    }
+
+    private void setDirectionByHandWeapons(DoodleDirection doodleDirection) {
+        for (HandWeapon handWeapon : handWeapons.values()) {
+            handWeapon.setDirection(doodleDirection);
+        }
     }
 
     private void newFireballProjectile() {
@@ -389,7 +411,11 @@ public class Doodle extends TexturedEntity {
         ));
     }
 
-    private void createBreakerBlade() {
+    private void createHandWeapons() {
+        handWeapons.put(Weapon.BREAKER_BLADE, createBreakerBlade());
+    }
+
+    private BreakerBlade createBreakerBlade() {
         float x = getX() - 45f, y = getY() + 15f, w = 90f, h = 104f, scale = 2f;
         float originX = w - 10f, originY = 10f;
         Rectangle breakerBladeRectangle = DoodleJumpGame.createRectangle(x, y, w * scale, h * scale);
@@ -400,7 +426,7 @@ public class Doodle extends TexturedEntity {
         breakerBladeSprite.setScale(scale);
         float[] vertices = {58, 21, 49, 26, 43, 33, 35, 41, 26, 48, 18, 57, 11, 65, 2, 73, 0, 85, 0, 96};
         MyPolyline polyline = new MyPolyline(vertices, x, y, originX, originY, w, h, scale);
-        breakerBlade = new BreakerBlade(
+        BreakerBlade breakerBlade = new BreakerBlade(
             x, y,
             w, h,
             scale,
@@ -408,6 +434,7 @@ public class Doodle extends TexturedEntity {
             Doodle.getDoodleInstance(), polyline, 0.25f, 140, -90,
             74
         );
+        return breakerBlade;
     }
 
     public void jump(JumpOnIt canJumpOnIt) {
@@ -491,20 +518,45 @@ public class Doodle extends TexturedEntity {
         return texturedProjectiles;
     }
 
-    public BreakerBlade getBreakerBlade() {
-        return breakerBlade;
+    public Collection<HandWeapon> getHandWeapons() {
+        return handWeapons.values();
+    }
+
+    public HandWeapon getActiveHandWeapon() {
+        return activeHandWeapon;
     }
 
     public float getJumpMaxY() {
         return jumpMaxY;
     }
 
-    public void setWeaponType(WeaponType weaponType) {
-        this.weaponType = weaponType;
-    }
-
     public DoodleMode getDoodleMode() {
         return doodleMode;
+    }
+
+    public DoodleDirection getDoodleDirection() {
+        return doodleDirection;
+    }
+
+    public Weapon getWeapon() {
+        return weapon;
+    }
+
+    public void setWeapon(Weapon weapon) {
+        this.weapon = weapon;
+        switch (weapon) {
+            case WATER_GUN:
+            case BLAST_LASER:
+            case SHURIKEN:
+            case FIREBALL:
+                weaponType = WeaponType.GUN;
+                activeHandWeapon = null;
+                break;
+            case BREAKER_BLADE:
+                weaponType = WeaponType.HAND;
+                activeHandWeapon = handWeapons.get(Weapon.BREAKER_BLADE);
+                break;
+        }
     }
 
     public WeaponType getWeaponType() {

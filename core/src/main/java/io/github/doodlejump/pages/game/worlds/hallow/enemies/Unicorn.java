@@ -20,7 +20,6 @@ public class Unicorn extends AnimatedDangeredEnemy implements XMoving {
 
     @Override
     public void reversSpeed() {
-        // todo texture revers
         directionSpeed = -directionSpeed;
     }
 

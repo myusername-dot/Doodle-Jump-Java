@@ -23,7 +23,7 @@ public class WizardFireballProjectile extends AnimatedGlowingProjectile implemen
     public float shoot(float delta) {
         translateY(-delta * projectileSpeed);
         timer += delta;
-        return y; // ToDo
+        return y;
     }
 
     @Override

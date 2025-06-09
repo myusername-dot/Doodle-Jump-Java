@@ -152,7 +152,7 @@ public class NotebookWorld extends DoodleJumpGame {
 
         float worldYSwap = doodleMovingLogicAndScoreIncrease(delta);
 
-        hallowPortalLogic(hallowPortal, worldYSwap);
+        portalsLogic(worldYSwap);
 
         enemyLife(casper, false, worldYSwap);
         enemyLife(bat, false, worldYSwap);
@@ -220,9 +220,7 @@ public class NotebookWorld extends DoodleJumpGame {
                 worldW, worldW);
         }
 
-        if (hallowPortal.isOnWindow()) {
-            drawAnimation(spriteBatch, hallowPortal, timer);
-        }
+        drawPortals(spriteBatch);
 
         nyanCatPlaysEvery100000Score(spriteBatch);
 

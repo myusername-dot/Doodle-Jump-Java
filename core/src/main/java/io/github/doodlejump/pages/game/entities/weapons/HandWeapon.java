@@ -18,7 +18,7 @@ public abstract class HandWeapon extends TexturedEntity {
     protected float startRotationAngle;
     protected final float rightShiftWhenFlip;
     protected final Doodle doodle;
-    protected Doodle.DoodleMode doodleDirection;
+    protected Doodle.DoodleDirection doodleDirection;
 
     public HandWeapon(float x, float y, float width, float height, float scale, Rectangle rectangle, Texture texture, Sprite sprite,
                       Doodle doodle, MyPolyline polyline, float hitTime, float maxAngle, float startRotationAngle, float rightShiftWhenFlip) {
@@ -30,14 +30,14 @@ public abstract class HandWeapon extends TexturedEntity {
         this.maxAngle = maxAngle;
         this.startRotationAngle = startRotationAngle;
         this.rightShiftWhenFlip = rightShiftWhenFlip;
-        doodleDirection = Doodle.DoodleMode.LEFT;
+        doodleDirection = doodle.getDoodleDirection();
         MyDebugRenderer.shapes.add(polyline);
         MyDebugRenderer.shapes.add(rectangle);
     }
 
-    public void setDirection(Doodle.DoodleMode doodleMode) {
-        if (doodleMode != Doodle.DoodleMode.FIRING && doodleMode != doodleDirection) {
-            doodleDirection = doodleMode;
+    public void setDirection(Doodle.DoodleDirection doodleDirection) {
+        if (this.doodleDirection != doodleDirection) {
+            this.doodleDirection = doodleDirection;
             startRotationAngle = -startRotationAngle;
             sprite.setRotation(startRotationAngle);
             polyline.setRotation(startRotationAngle);
@@ -45,7 +45,7 @@ public abstract class HandWeapon extends TexturedEntity {
             sprite.setOrigin(width - sprite.getOriginX(), sprite.getOriginY());
             polyline.flipX();
             polyline.setOrigin(width - polyline.getOriginX(), polyline.getOriginY());
-            if (doodleDirection == Doodle.DoodleMode.RIGHT) {
+            if (doodleDirection == Doodle.DoodleDirection.RIGHT) {
                 sprite.setPosition(sprite.getX() + rightShiftWhenFlip, sprite.getY());
                 polyline.setPosition(polyline.getX() + rightShiftWhenFlip, polyline.getY());
             } else {
@@ -55,16 +55,12 @@ public abstract class HandWeapon extends TexturedEntity {
         }
     }
 
-    public Doodle.DoodleMode getDirection() {
-        return doodleDirection;
-    }
-
-    public boolean hit(float delta) {
-        if (doodle.getWeaponType() == Doodle.WeaponType.BREAKER_BLADE &&
+    public boolean hitIfActive(float delta) {
+        if (doodle.getWeapon() == Doodle.Weapon.BREAKER_BLADE &&
             doodle.getDoodleMode() == Doodle.DoodleMode.FIRING) {
             float frameTime = timer % hitTime;
             float rotateAngle = maxAngle / hitTime * frameTime;
-            if (doodleDirection == Doodle.DoodleMode.RIGHT) {
+            if (doodleDirection == Doodle.DoodleDirection.RIGHT) {
                 rotateAngle = -rotateAngle;
             }
             sprite.setRotation(startRotationAngle + rotateAngle);

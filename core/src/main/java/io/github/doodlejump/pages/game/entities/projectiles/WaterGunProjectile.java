@@ -28,23 +28,21 @@ public class WaterGunProjectile extends GravityTexturedProjectile {
 
     @Override
     public float shoot(float delta) {
-        float currentYPosition = projectileStartY + projectileSpeed * timer
-            - gravity / 2 * (float) Math.pow(timer, 2);
-        setY(currentYPosition);
-        float projectileMaxYT = projectileSpeed / gravity;
-        if (!isFlipped && projectileMaxYT < timer) {
+        projectileSpeed -= gravity * delta;
+        projectileSpeed = MathUtils.clamp(projectileSpeed, -gravity, 1000f);
+        translateY(projectileSpeed);
+        timer += delta;
+        if (!isFlipped && projectileSpeed <= 0) {
             sprite.flip(false, true);
             isFlipped = true;
         }
-        timer += delta;
-
         return y;
     }
 
     @Override
     public void whenHit() {
         projectileSpeed = 0f;
-        projectileStartY = -worldH;
+        setY(-worldH);
     }
 
     @Override

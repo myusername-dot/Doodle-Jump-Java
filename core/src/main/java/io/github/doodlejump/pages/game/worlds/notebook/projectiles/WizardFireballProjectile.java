@@ -28,6 +28,6 @@ public class WizardFireballProjectile extends AnimatedGlowingProjectile implemen
 
     @Override
     public void whenHit() {
-        translateY(-worldH);
+        setY(-worldH);
     }
 }

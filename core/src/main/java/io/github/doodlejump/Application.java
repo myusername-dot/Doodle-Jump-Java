@@ -50,7 +50,7 @@ public class Application extends ApplicationAdapter implements ApplicationFacade
 
         debugger = new MyDebugRenderer();
 
-        page = new NotebookWorld(application, 700f, 500f, 0f);
+        page = new NotebookWorld(application, 9.8f, 500f, 0f);
         page.create();
     }
 

@@ -215,7 +215,7 @@ public abstract class DoodleJumpGame implements Page {
     }
 
     protected float doodleMovingLogicAndScoreIncrease(float delta) {
-        doodle.translateX(doodle.getwSpeed() * delta);
+        doodle.translateX(doodle.getxSpeed() * delta);
 
         float worldYSwap = doodle.goUp(delta);
         score += worldYSwap;
@@ -299,12 +299,12 @@ public abstract class DoodleJumpGame implements Page {
         }
 
         // add platform
-        if (worldH - maxPlatformY > doodle.getJumpMaxY() - defPlatformH) {
+        if (worldH - maxPlatformY > doodle.getPlatformJumpMaxY() - defPlatformH) {
             do {
                 maxPlatformY = Platform.createPlatform(world, platforms, score, wSpeedConst, defPlatformH,
-                    maxPlatformY + doodle.getJumpMaxY() + defPlatformH);
+                    maxPlatformY + doodle.getPlatformJumpMaxY() + defPlatformH);
             }
-            while (worldH - maxPlatformY > doodle.getJumpMaxY() - defPlatformH);
+            while (worldH - maxPlatformY > doodle.getPlatformJumpMaxY() - defPlatformH);
         } else if (worldH - maxPlatformY > doodleH &&
             MathUtils.random(0, (float) (Math.sqrt(score / worldH))) * delta * 100f < 1f) {
             Platform.createPlatform(world, platforms, score, wSpeedConst, defPlatformH, -1);
@@ -386,6 +386,7 @@ public abstract class DoodleJumpGame implements Page {
     protected void drawScoreAndHp(SpriteBatch spriteBatch) {
         scoreFont.draw(spriteBatch, "SCORE: " + (int) score, 0, worldH - 1/*, (float) 1, 1, false*/);
         fpsFont.draw(spriteBatch, "fps: " + Gdx.graphics.getFramesPerSecond(), worldW - 60, worldH - 10);
+        fpsFont.draw(spriteBatch, "velocity: " + doodle.getyMovingVelocity(), worldW - 120, worldH - 50);
 
         for (int i = 0; i < doodle.getHp(); i++) {
             heartSprite.setX(i * heartSprite.getWidth());

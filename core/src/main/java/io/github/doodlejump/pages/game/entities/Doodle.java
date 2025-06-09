@@ -12,6 +12,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.physics.box2d.World;
 import io.github.doodlejump.additional.GifDecoder;
 import io.github.doodlejump.pages.game.DoodleJumpGame;
+import io.github.doodlejump.pages.game.debug.MyDebugRenderer;
 import io.github.doodlejump.pages.game.entities.effects.MiniExplosion;
 import io.github.doodlejump.pages.game.entities.effects.Sparks;
 import io.github.doodlejump.pages.game.entities.effects.WaterSplash;
@@ -36,6 +37,16 @@ public class Doodle extends TexturedEntity {
     private float gravity;
     private float wSpeedConst;
 
+    private float xSpeed;
+    private float xMovingVelocity;
+    private final float xMovingVelocityScale;
+
+    private float yMovingVelocity;
+    private final float platformJumpStartVelocity;
+    private final float springJumpStartVelocity;
+    private final float trampolineJumpStartVelocity;
+    private float platformJumpMaxY;
+
     private Texture doodle1Texture;
     private Texture doodle2Texture;
     private Texture doodle3Texture;
@@ -54,14 +65,7 @@ public class Doodle extends TexturedEntity {
     private WeaponType weaponType;
     private JumpType jumpType;
 
-    private List<Entity> attachedEntities;
-
-    private float jumpTimer;
-    private float jumpStartY;
-    private float accelerationLeftTimer;
-    private float accelerationRightTimer;
-
-    private float wSpeed;
+    private final List<Entity> attachedEntities;
 
     private float projectilesTimer;
     private int projectilesCounter;
@@ -73,14 +77,6 @@ public class Doodle extends TexturedEntity {
     private final Map<Weapon, HandWeapon> handWeapons;
 
     private HandWeapon activeHandWeapon;
-
-    private final float platformJumpStartSpeed;
-    private final float springJumpStartSpeed;
-    private final float trampolineJumpStartSpeed;
-    private float jumpMaxY;
-    private float springJumpBestQTime;
-    private float trampolineJumpBestQTime;
-    private float trampolineSpringJumpBestQTime;
 
     private final Animation<TextureRegion> fireChakraAnimation;
     private final Animation<TextureRegion> fireballAnimation;
@@ -107,9 +103,11 @@ public class Doodle extends TexturedEntity {
         waterGunTexture2 = new Texture("weapons/water-jet2.png");
         waterGunTexture3 = new Texture("weapons/water-jet2.png");
         breakerBladeTexture = new Texture("weapons/Breaker_Blade.png");
-        platformJumpStartSpeed = 500f;
-        springJumpStartSpeed = 800f;
-        trampolineJumpStartSpeed = 1000f;
+        xMovingVelocityScale = 200f;
+        platformJumpStartVelocity = 8f;
+        springJumpStartVelocity = 13f;
+        trampolineJumpStartVelocity = 16f;
+        platformJumpMaxY = 195f;
         hp = 10;
         texturedProjectiles = new ArrayList<>();
         animatedProjectiles = new ArrayList<>();
@@ -128,7 +126,7 @@ public class Doodle extends TexturedEntity {
         float x, float y, Rectangle rectangle, Texture texture, Sprite sprite,
         float gravity, float wSpeedConst,
         Texture doodle1Texture, Texture doodle2Texture, Texture doodle3Texture,
-        MiniExplosion explosionEffect, Sparks smokeEffect, WaterSplash waterSplashEffect,
+        MiniExplosion explosionEffect, Sparks sparksEffect, WaterSplash waterSplashEffect,
         World world, RayHandler rayHandler
     ) {
         this.x = x;
@@ -144,85 +142,55 @@ public class Doodle extends TexturedEntity {
         this.doodle2Texture = doodle2Texture;
         this.doodle3Texture = doodle3Texture;
         this.explosionEffect = explosionEffect;
-        this.sparksEffect = smokeEffect;
+        this.sparksEffect = sparksEffect;
         this.waterSplashEffect = waterSplashEffect;
-        jumpStartY = y;
         doodleMode = DoodleMode.LEFT;
         doodleDirection = DoodleDirection.LEFT;
         weapon = Weapon.BLAST_LASER;
         weaponType = WeaponType.GUN;
         jumpType = JumpType.PLATFORM;
-        jumpTimer = 0f;
-        accelerationLeftTimer = 0f;
-        accelerationRightTimer = 0f;
-        wSpeed = 0f;
+        xSpeed = 0f;
+        xMovingVelocity = 0f;
+        yMovingVelocity = 0f;
         projectilesTimer = 0f;
         projectilesCounter = 0;
-        jumpMaxY = (float) Math.pow(platformJumpStartSpeed, 2) / (gravity * 2f);
-        springJumpBestQTime = (springJumpStartSpeed - platformJumpStartSpeed) / gravity;
-        trampolineJumpBestQTime = (trampolineJumpStartSpeed - platformJumpStartSpeed) / gravity;
-        trampolineSpringJumpBestQTime = (trampolineJumpStartSpeed - springJumpStartSpeed) / gravity;
-        /*jumpMaxYT = platformJumpStartSpeed / gravity;
-        trampolineJumpMaxYT = trampolineJumpStartSpeed / gravity;
-        trampolineJumpMaxY = (float) Math.pow(trampolineJumpStartSpeed, 2) / (gravity * 2f);*/
         texturedProjectiles.clear();
         animatedProjectiles.clear();
         projectileHelper = new ProjectileHelper(world, rayHandler, 20f, 200f, Color.RED);
         createHandWeapons();
         attachedEntities.clear();
         attachedEntities.addAll(handWeapons.values());
-    }
-
-    public enum DoodleMode {
-        LEFT,
-        RIGHT,
-        FIRING
-    }
-
-    public enum DoodleDirection {
-        LEFT,
-        RIGHT
-    }
-
-    public enum JumpType {
-        PLATFORM,
-        SPRING,
-        TRAMPOLINE
-    }
-
-    public enum Weapon {
-        FIREBALL,
-        SHURIKEN,
-        BLAST_LASER,
-        WATER_GUN,
-        BREAKER_BLADE
-    }
-
-    public enum WeaponType {
-        HAND,
-        GUN
+        MyDebugRenderer.shapes.add(rectangle);
     }
 
     public void rightDirection(float delta) {
-        setTexture(doodle1Texture);
-        doodleMode = Doodle.DoodleMode.RIGHT;
-        doodleDirection = DoodleDirection.RIGHT;
-        accelerationLeftTimer = 0f;
-        accelerationRightTimer += delta;
-        float deltaSpeed = (float) (wSpeedConst * 5f * delta * (1f + Math.pow(accelerationRightTimer, 2)));
-        wSpeed = MathUtils.clamp(wSpeed + deltaSpeed, -wSpeedConst, wSpeedConst);
-        setDirectionByHandWeapons(doodleDirection);
+        if (doodleMode != DoodleMode.RIGHT) {
+            setTexture(doodle1Texture);
+            doodleMode = Doodle.DoodleMode.RIGHT;
+        }
+        if (doodleDirection != DoodleDirection.RIGHT) {
+            doodleDirection = DoodleDirection.RIGHT;
+            xMovingVelocity = 0f;
+            setDirectionByHandWeapons(doodleDirection);
+        } else {
+            xMovingVelocity += xMovingVelocityScale * delta;
+            xSpeed = MathUtils.clamp(xSpeed + xMovingVelocity, -wSpeedConst, wSpeedConst);
+        }
     }
 
     public void leftDirection(float delta) {
-        setTexture(doodle2Texture);
-        doodleMode = DoodleMode.LEFT;
-        doodleDirection = DoodleDirection.LEFT;
-        accelerationRightTimer = 0f;
-        accelerationLeftTimer += delta;
-        float deltaSpeed = (float) (wSpeedConst * 5f * delta * (1f + Math.pow(accelerationLeftTimer, 2)));
-        wSpeed = MathUtils.clamp(wSpeed - deltaSpeed, -wSpeedConst, wSpeedConst);
-        setDirectionByHandWeapons(doodleDirection);
+        if (doodleMode != DoodleMode.LEFT) {
+            setTexture(doodle2Texture);
+            doodleMode = DoodleMode.LEFT;
+        }
+        if (doodleDirection != DoodleDirection.LEFT) {
+            doodleDirection = DoodleDirection.LEFT;
+            xMovingVelocity = 0f;
+            setDirectionByHandWeapons(doodleDirection);
+        } else {
+            xMovingVelocity += xMovingVelocityScale * delta;
+            xSpeed = MathUtils.clamp(xSpeed - xMovingVelocity, -wSpeedConst, wSpeedConst);
+        }
     }
 
     public void lookingUp() {
@@ -236,67 +204,69 @@ public class Doodle extends TexturedEntity {
             }
         }
         doodleMode = DoodleMode.FIRING;
-        accelerationRightTimer = 0f;
-        accelerationLeftTimer = 0f;
+        xMovingVelocity = 0f;
     }
 
     public void slowdown(float delta) {
-        float deltaSpeed = wSpeedConst * 3f * delta;
-        if (wSpeed > deltaSpeed) {
-            wSpeed -= deltaSpeed;
-        } else if (wSpeed < 0f && wSpeed < deltaSpeed) {
-            wSpeed += deltaSpeed;
+        float velocity = wSpeedConst * 3f * delta;
+        if (xSpeed > velocity) {
+            xSpeed -= velocity;
+        } else if (xSpeed < 0f && xSpeed < velocity) {
+            xSpeed += velocity;
         } else {
-            wSpeed = 0f;
+            xSpeed = 0f;
         }
     }
 
     public float goUp(float delta) {
-        jumpTimer += delta;
-
-        // current jump position Y
-        float doodleJumpY = getCurrentDoodleJumpYPosition();
-
         // jump from the floor
-        if (doodleJumpY < 0f) {
+        if (y < 0f) {
             jumpFromTheFloor();
         }
-
-        return getWorldYSwapAndTranslateY(doodleJumpY);
+        return getJumpAndGetWorldYSwap(delta);
     }
 
-    private float getCurrentDoodleJumpYPosition() {
-        float jumpStartSpeed;
-        switch (jumpType) {
-            case PLATFORM:
-                jumpStartSpeed = platformJumpStartSpeed;
-                break;
-            case SPRING:
-                jumpStartSpeed = springJumpStartSpeed;
-                break;
-            case TRAMPOLINE:
-                jumpStartSpeed = trampolineJumpStartSpeed;
-                break;
-            default:
-                jumpStartSpeed = 0;
-                break;
-        }
-
-        return jumpStartY + jumpStartSpeed * jumpTimer
-            - gravity / 2 * (float) Math.pow(jumpTimer, 2);
-    }
-
-    private float getWorldYSwapAndTranslateY(float doodleJumpY) {
+    private float getJumpAndGetWorldYSwap(float delta) {
         float worldYSwap = 0;
         float maxY = worldH - doodleH * 4.5f;
-        if (doodleJumpY > maxY) {
-            worldYSwap = doodleJumpY - maxY;
-            jumpStartY -= worldYSwap;
-            doodleJumpY = maxY;
-        }
-        setY(doodleJumpY);
 
+        yMovingVelocity -= gravity * delta;
+        yMovingVelocity = MathUtils.clamp(yMovingVelocity, -gravity, 1000f);
+
+        translateY(yMovingVelocity);
+        if (y > maxY) {
+            worldYSwap = y - maxY;
+            setY(maxY);
+        }
         return worldYSwap;
+    }
+
+    public void jump(JumpOnIt canJumpOnIt) {
+        if (canJumpOnIt.getJumpType() == JumpType.TRAMPOLINE) {
+            // trampoline
+            jumpType = JumpType.TRAMPOLINE;
+            yMovingVelocity = trampolineJumpStartVelocity;
+        } else if (canJumpOnIt.getJumpType() == JumpType.SPRING &&
+            (jumpType != JumpType.TRAMPOLINE || yMovingVelocity < trampolineJumpStartVelocity) // off it
+        ) {
+            // spring
+            // ToDo spring overlap
+            jumpType = JumpType.SPRING;
+            yMovingVelocity = springJumpStartVelocity;
+        } else if (jumpType == JumpType.PLATFORM ||  // off it
+            yMovingVelocity < platformJumpStartVelocity
+        ) {
+            // platform
+            jumpType = JumpType.PLATFORM;
+            yMovingVelocity = platformJumpStartVelocity;
+        }
+    }
+
+    private void jumpFromTheFloor() {
+        setXY(x, 0f);
+        jumpType = JumpType.PLATFORM;
+        yMovingVelocity = platformJumpStartVelocity;
+        takeShoot();
     }
 
     public void wallSwap() {
@@ -374,7 +344,7 @@ public class Doodle extends TexturedEntity {
             x, y,
             w, h,
             shurikenRectangle, shurikenAnimation, null,
-            gravity, 600f
+            gravity, 8f
         ));
     }
 
@@ -407,7 +377,7 @@ public class Doodle extends TexturedEntity {
             waterGunRectangle,
             waterGunTexture1, waterGunTexture2, waterGunTexture3,
             waterGunSprite, waterSplashEffect,
-            gravity, 600f
+            gravity, 8f
         ));
     }
 
@@ -437,37 +407,21 @@ public class Doodle extends TexturedEntity {
         return breakerBlade;
     }
 
-    public void jump(JumpOnIt canJumpOnIt) {
-        if (canJumpOnIt.getJumpType() == JumpType.TRAMPOLINE) {
-            // trampoline
-            jumpType = JumpType.TRAMPOLINE;
-            jumpStartY = y;
-            dropJumpTimer();
-        } else if (canJumpOnIt.getJumpType() == JumpType.SPRING &&
-            (jumpType != Doodle.JumpType.TRAMPOLINE || jumpTimer > trampolineSpringJumpBestQTime) // off it
-        ) {
-            // spring
-            // ToDo spring overlap
-            jumpType = JumpType.SPRING;
-            jumpStartY = y;
-            dropJumpTimer();
-        } else if (jumpType == JumpType.PLATFORM ||  // off it
-            jumpType == JumpType.SPRING && jumpTimer > springJumpBestQTime || // off it
-            jumpType == JumpType.TRAMPOLINE && jumpTimer > trampolineJumpBestQTime // off it
-        ) {
-            // platform
-            jumpType = JumpType.PLATFORM;
-            jumpStartY = y;
-            dropJumpTimer();
+    public void setWeapon(Weapon weapon) {
+        this.weapon = weapon;
+        switch (weapon) {
+            case WATER_GUN:
+            case BLAST_LASER:
+            case SHURIKEN:
+            case FIREBALL:
+                weaponType = WeaponType.GUN;
+                activeHandWeapon = null;
+                break;
+            case BREAKER_BLADE:
+                weaponType = WeaponType.HAND;
+                activeHandWeapon = handWeapons.get(Weapon.BREAKER_BLADE);
+                break;
         }
-    }
-
-    private void jumpFromTheFloor() {
-        setXY(x, 0f);
-        jumpType = JumpType.PLATFORM;
-        jumpStartY = 0f;
-        dropJumpTimer();
-        takeShoot();
     }
 
     @Override
@@ -498,16 +452,16 @@ public class Doodle extends TexturedEntity {
         return hp;
     }
 
-    public Animation<TextureRegion> getFireChakraAnimation() {
-        return fireChakraAnimation;
+    public float getyMovingVelocity() {
+        return yMovingVelocity;
     }
 
-    private void dropJumpTimer() {
-        jumpTimer = 0f;
+    public float getPlatformJumpMaxY() {
+        return platformJumpMaxY;
     }
 
-    public float getwSpeed() {
-        return wSpeed;
+    public float getxSpeed() {
+        return xSpeed;
     }
 
     public List<AnimatedProjectile> getAnimatedProjectiles() {
@@ -526,10 +480,6 @@ public class Doodle extends TexturedEntity {
         return activeHandWeapon;
     }
 
-    public float getJumpMaxY() {
-        return jumpMaxY;
-    }
-
     public DoodleMode getDoodleMode() {
         return doodleMode;
     }
@@ -540,23 +490,6 @@ public class Doodle extends TexturedEntity {
 
     public Weapon getWeapon() {
         return weapon;
-    }
-
-    public void setWeapon(Weapon weapon) {
-        this.weapon = weapon;
-        switch (weapon) {
-            case WATER_GUN:
-            case BLAST_LASER:
-            case SHURIKEN:
-            case FIREBALL:
-                weaponType = WeaponType.GUN;
-                activeHandWeapon = null;
-                break;
-            case BREAKER_BLADE:
-                weaponType = WeaponType.HAND;
-                activeHandWeapon = handWeapons.get(Weapon.BREAKER_BLADE);
-                break;
-        }
     }
 
     public WeaponType getWeaponType() {
@@ -573,5 +506,36 @@ public class Doodle extends TexturedEntity {
 
     public Animation<TextureRegion> getWaterSplashAnimation() {
         return waterSplashAnimation;
+    }
+
+
+    public enum DoodleMode {
+        LEFT,
+        RIGHT,
+        FIRING
+    }
+
+    public enum DoodleDirection {
+        LEFT,
+        RIGHT
+    }
+
+    public enum JumpType {
+        PLATFORM,
+        SPRING,
+        TRAMPOLINE
+    }
+
+    public enum Weapon {
+        FIREBALL,
+        SHURIKEN,
+        BLAST_LASER,
+        WATER_GUN,
+        BREAKER_BLADE
+    }
+
+    public enum WeaponType {
+        HAND,
+        GUN
     }
 }

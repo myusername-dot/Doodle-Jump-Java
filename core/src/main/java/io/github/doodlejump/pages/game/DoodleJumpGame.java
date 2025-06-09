@@ -17,6 +17,7 @@ import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.github.doodlejump.pages.Page;
+import io.github.doodlejump.pages.game.debug.MyDebugRenderer;
 import io.github.doodlejump.pages.game.entities.AnimatedEntity;
 import io.github.doodlejump.pages.game.entities.Doodle;
 import io.github.doodlejump.pages.game.entities.effects.AnimatedEffect;
@@ -28,6 +29,7 @@ import io.github.doodlejump.pages.game.entities.platforms.Platform;
 import io.github.doodlejump.pages.game.entities.portals.HallowPortal;
 import io.github.doodlejump.pages.game.entities.projectiles.AnimatedProjectile;
 import io.github.doodlejump.pages.game.entities.projectiles.TexturedProjectile;
+import io.github.doodlejump.pages.game.entities.weapons.BreakerBlade;
 import io.github.doodlejump.pages.game.interfaces.*;
 import io.github.doodlejump.pages.game.worlds.hallow.HallowWorld;
 
@@ -35,8 +37,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import static io.github.doodlejump.Application.worldH;
-import static io.github.doodlejump.Application.worldW;
+import static io.github.doodlejump.Application.*;
 import static io.github.doodlejump.pages.game.entities.Doodle.doodleH;
 import static io.github.doodlejump.pages.game.entities.Doodle.doodleW;
 
@@ -134,7 +135,7 @@ public abstract class DoodleJumpGame implements Page {
 
         float doodleStartX = worldW / 2f - doodleW / 2f;
         float doodleStartY = doodleH * 3f;
-        Sprite doodleSprite = new Sprite(doodle1Texture);
+        Sprite doodleSprite = new Sprite(doodle2Texture);
         doodleSprite.setPosition(doodleStartX, doodleStartY);
         doodleSprite.setSize(doodleW, doodleH);
         Rectangle doodleRectangle = createRectangle(
@@ -143,7 +144,7 @@ public abstract class DoodleJumpGame implements Page {
         );
         doodle.doodleBuilder(
             doodleStartX, doodleStartY,
-            doodleRectangle, doodle1Texture, doodleSprite,
+            doodleRectangle, doodle2Texture, doodleSprite,
             gravity, wSpeedConst,
             doodle1Texture, doodle2Texture, doodle3Texture,
             explosionEffect, sparksEffect, splashEffect,
@@ -203,6 +204,8 @@ public abstract class DoodleJumpGame implements Page {
             doodle.setWeaponType(Doodle.WeaponType.BLAST_LASER);
         } else if (Gdx.input.isKeyPressed(Input.Keys.NUM_4)) {
             doodle.setWeaponType(Doodle.WeaponType.WATER_GUN);
+        } else if (Gdx.input.isKeyPressed(Input.Keys.NUM_5)) {
+            doodle.setWeaponType(Doodle.WeaponType.BREAKER_BLADE);
         }
     }
 
@@ -357,6 +360,10 @@ public abstract class DoodleJumpGame implements Page {
         }
 
         drawAnimatedProjectiles(spriteBatch, doodle.getAnimatedProjectiles());
+
+        if (doodle.getWeaponType() == Doodle.WeaponType.BREAKER_BLADE) {
+            doodle.getBreakerBlade().getSprite().draw(spriteBatch);
+        }
     }
 
     protected void drawScoreAndHp(SpriteBatch spriteBatch) {
@@ -373,6 +380,9 @@ public abstract class DoodleJumpGame implements Page {
         spriteBatch.end();
         rayHandler.setCombinedMatrix(application.getCamera());
         rayHandler.updateAndRender();
+        if (debug) {
+            application.getDebugger().render(application.getCamera().combined);
+        }
     }
 
     protected void moveXAndRebound(XMoving movingEntity, float delta) {
@@ -386,13 +396,19 @@ public abstract class DoodleJumpGame implements Page {
         movingEntity.move(delta);
     }
 
-    protected void hitByEnemies(List<Enemy> enemies) {
+    protected void hitByEnemies(List<Enemy> enemies, float delta) {
         List<Projectile> doodleProjectiles = new ArrayList<>(doodle.getAnimatedProjectiles());
         doodleProjectiles.addAll(doodle.getTexturedProjectiles());
-        for (Projectile doodleProjectile : doodleProjectiles) {
-            for (Enemy enemy : enemies) {
+        for (Enemy enemy : enemies) {
+            for (Projectile doodleProjectile : doodleProjectiles) {
                 hitEnemy(enemy, doodleProjectile);
             }
+            BreakerBlade breakerBlade = doodle.getBreakerBlade();
+            if (breakerBlade.hit(delta) &&
+                enemy.isAlive() && breakerBlade.rectangleOverlaps(enemy.getRectangle())) {
+                enemy.takeShoot();
+            }
+
         }
     }
 
@@ -462,6 +478,26 @@ public abstract class DoodleJumpGame implements Page {
         return box;
     }
 
+    /*public static Vector2 xCameraScale() {
+        float blackScreenWidth = Gdx.graphics.getBackBufferWidth();
+        float blackScreenHeight = Gdx.graphics.getBackBufferHeight();
+        if (blackScreenWidth == worldW && blackScreenHeight == worldH) {
+            return new Vector2(0, 1);
+        }
+        float blackScreenWorldYScale = blackScreenHeight / worldH;
+        float worldWindowW;
+        float blackScreenRealWidth;
+        if (blackScreenWorldYScale > 1) {
+            blackScreenWorldYScale = 1 / blackScreenWorldYScale;
+            blackScreenRealWidth = blackScreenWidth * blackScreenWorldYScale;
+            worldWindowW = worldW;
+        } else {
+            blackScreenRealWidth = blackScreenWidth;
+            worldWindowW = worldW * blackScreenWorldYScale;
+        }
+        return new Vector2((blackScreenWidth - worldWindowW) / 2f, worldWindowW / blackScreenRealWidth);
+    }*/
+
     public static float xScalingAtWindowWithBlackBorders(float x, float circleRadius) {
         float blackScreenWidth = Gdx.graphics.getBackBufferWidth();
         float blackScreenHeight = Gdx.graphics.getBackBufferHeight();
@@ -494,6 +530,7 @@ public abstract class DoodleJumpGame implements Page {
 
     @Override
     public Page getNextPage() {
+        MyDebugRenderer.shapes.clear();
         rayHandler.removeAll();
         rayHandler.dispose();
         world.clearForces();

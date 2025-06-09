@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Polyline;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.physics.box2d.World;
 import io.github.doodlejump.additional.GifDecoder;
@@ -16,7 +17,10 @@ import io.github.doodlejump.pages.game.entities.effects.MiniExplosion;
 import io.github.doodlejump.pages.game.entities.effects.Sparks;
 import io.github.doodlejump.pages.game.entities.effects.WaterSplash;
 import io.github.doodlejump.pages.game.entities.projectiles.*;
+import io.github.doodlejump.pages.game.entities.weapons.BreakerBlade;
+import io.github.doodlejump.pages.game.entities.weapons.HandWeapon;
 import io.github.doodlejump.pages.game.interfaces.JumpOnIt;
+import io.github.doodlejump.pages.game.shapes.MyPolyline;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,13 +43,18 @@ public class Doodle extends TexturedEntity {
     private Texture doodle3Texture;
 
     private final Texture blastLaserTexture;
-    private final Texture waterGunTexture;
+    private final Texture waterGunTexture1;
+    private final Texture waterGunTexture2;
+    private final Texture waterGunTexture3;
+    private final Texture breakerBladeTexture;
 
     private float hp;
 
     private DoodleMode doodleMode;
     private WeaponType weaponType;
     private JumpType jumpType;
+
+    private List<Entity> attachedEntities;
 
     private float jumpTimer;
     private float jumpStartY;
@@ -61,6 +70,8 @@ public class Doodle extends TexturedEntity {
 
     private final List<AnimatedProjectile> animatedProjectiles;
     private final List<TexturedProjectile> texturedProjectiles;
+
+    private BreakerBlade breakerBlade;
 
     private final float platformJumpStartSpeed;
     private final float springJumpStartSpeed;
@@ -91,13 +102,17 @@ public class Doodle extends TexturedEntity {
         sparksAnimation = GifDecoder.loadGIFAnimation(Animation.PlayMode.LOOP, Gdx.files.internal("effects/sparks.gif").read());
         waterSplashAnimation = GifDecoder.loadGIFAnimation(Animation.PlayMode.NORMAL, Gdx.files.internal("effects/water_splash.gif").read());
         blastLaserTexture = new Texture("weapons/blast-harrier-laser.png");
-        waterGunTexture = new Texture("weapons/water-jet1.png");
+        waterGunTexture1 = new Texture("weapons/water-jet1.png");
+        waterGunTexture2 = new Texture("weapons/water-jet2.png");
+        waterGunTexture3 = new Texture("weapons/water-jet2.png");
+        breakerBladeTexture = new Texture("weapons/Breaker_Blade.png");
         platformJumpStartSpeed = 500f;
         springJumpStartSpeed = 800f;
         trampolineJumpStartSpeed = 1000f;
         hp = 10;
         texturedProjectiles = new ArrayList<>();
         animatedProjectiles = new ArrayList<>();
+        attachedEntities = new ArrayList<>();
     }
 
     public static Doodle getDoodleInstance() {
@@ -130,7 +145,7 @@ public class Doodle extends TexturedEntity {
         this.sparksEffect = smokeEffect;
         this.waterSplashEffect = waterSplashEffect;
         jumpStartY = y;
-        doodleMode = DoodleMode.RIGHT;
+        doodleMode = DoodleMode.LEFT;
         weaponType = WeaponType.BLAST_LASER;
         jumpType = JumpType.PLATFORM;
         jumpTimer = 0f;
@@ -149,9 +164,12 @@ public class Doodle extends TexturedEntity {
         texturedProjectiles.clear();
         animatedProjectiles.clear();
         projectileHelper = new ProjectileHelper(world, rayHandler, 20f, 200f, Color.RED);
+        createBreakerBlade();
+        attachedEntities.clear();
+        attachedEntities.add(breakerBlade);
     }
 
-    private enum DoodleMode {
+    public enum DoodleMode {
         LEFT,
         RIGHT,
         FIRING
@@ -167,7 +185,8 @@ public class Doodle extends TexturedEntity {
         FIREBALL,
         SHURIKEN,
         BLAST_LASER,
-        WATER_GUN
+        WATER_GUN,
+        BREAKER_BLADE
     }
 
     public void rightDirection(float delta) {
@@ -177,6 +196,7 @@ public class Doodle extends TexturedEntity {
         accelerationRightTimer += delta;
         float deltaSpeed = (float) (wSpeedConst * 5f * delta * (1f + Math.pow(accelerationRightTimer, 2)));
         wSpeed = MathUtils.clamp(wSpeed + deltaSpeed, -wSpeedConst, wSpeedConst);
+        breakerBlade.setDirection(doodleMode);
     }
 
     public void leftDirection(float delta) {
@@ -186,10 +206,19 @@ public class Doodle extends TexturedEntity {
         accelerationLeftTimer += delta;
         float deltaSpeed = (float) (wSpeedConst * 5f * delta * (1f + Math.pow(accelerationLeftTimer, 2)));
         wSpeed = MathUtils.clamp(wSpeed - deltaSpeed, -wSpeedConst, wSpeedConst);
+        breakerBlade.setDirection(doodleMode);
     }
 
     public void lookingUp() {
-        setTexture(doodle3Texture);
+        if (weaponType != WeaponType.BREAKER_BLADE) {
+            setTexture(doodle3Texture);
+        } else {
+            if (breakerBlade.getDirection() == DoodleMode.LEFT) {
+                setTexture(doodle2Texture);
+            } else {
+                setTexture(doodle1Texture);
+            }
+        }
         doodleMode = DoodleMode.FIRING;
         accelerationRightTimer = 0f;
         accelerationLeftTimer = 0f;
@@ -267,7 +296,7 @@ public class Doodle extends TexturedEntity {
     public void ifIsFiring(float delta) {
         DoodleJumpGame.moveAndRemoveProjectiles(getAnimatedProjectiles(), delta);
         DoodleJumpGame.moveAndRemoveProjectiles(getTexturedProjectiles(), delta);
-        if (doodleMode == DoodleMode.FIRING) {
+        if (doodleMode == DoodleMode.FIRING && weaponType != WeaponType.BREAKER_BLADE) {
             if ((int) (projectilesTimer * 5f) >= projectilesCounter) {
                 switch (weaponType) {
                     case FIREBALL:
@@ -347,15 +376,38 @@ public class Doodle extends TexturedEntity {
         projectilesCounter++;
         float x = getX() + 30f, y = getY() + 60f, w = 15f, h = 60f;
         Rectangle waterGunRectangle = DoodleJumpGame.createRectangle(x, y, w, h);
-        Sprite waterGunSprite = new Sprite(waterGunTexture);
+        Sprite waterGunSprite = new Sprite(waterGunTexture1);
         waterGunSprite.setSize(w, h);
         waterGunSprite.setPosition(x, y);
         texturedProjectiles.add(new WaterGunProjectile(
             x, y,
             w, h,
-            waterGunRectangle, waterGunTexture, waterGunSprite, waterSplashEffect,
+            waterGunRectangle,
+            waterGunTexture1, waterGunTexture2, waterGunTexture3,
+            waterGunSprite, waterSplashEffect,
             gravity, 600f
         ));
+    }
+
+    private void createBreakerBlade() {
+        float x = getX() - 45f, y = getY() + 15f, w = 90f, h = 104f, scale = 2f;
+        float originX = w - 10f, originY = 10f;
+        Rectangle breakerBladeRectangle = DoodleJumpGame.createRectangle(x, y, w * scale, h * scale);
+        Sprite breakerBladeSprite = new Sprite(breakerBladeTexture);
+        breakerBladeSprite.setSize(w, h);
+        breakerBladeSprite.setOrigin(originX, originY);
+        breakerBladeSprite.setPosition(x, y);
+        breakerBladeSprite.setScale(scale);
+        float[] vertices = {58, 21, 49, 26, 43, 33, 35, 41, 26, 48, 18, 57, 11, 65, 2, 73, 0, 85, 0, 96};
+        MyPolyline polyline = new MyPolyline(vertices, x, y, originX, originY, w, h, scale);
+        breakerBlade = new BreakerBlade(
+            x, y,
+            w, h,
+            scale,
+            breakerBladeRectangle, breakerBladeTexture, breakerBladeSprite,
+            Doodle.getDoodleInstance(), polyline, 1, 140, -90,
+            74
+        );
     }
 
     public void jump(JumpOnIt canJumpOnIt) {
@@ -391,6 +443,22 @@ public class Doodle extends TexturedEntity {
         takeShoot();
     }
 
+    @Override
+    public void translateX(float value) {
+        super.translateX(value);
+        for (Entity entity : attachedEntities) {
+            entity.translateX(value);
+        }
+    }
+
+    @Override
+    public void translateY(float value) {
+        super.translateY(value);
+        for (Entity entity : attachedEntities) {
+            entity.translateY(value);
+        }
+    }
+
     public void takeShoot() {
         hp--;
     }
@@ -423,12 +491,24 @@ public class Doodle extends TexturedEntity {
         return texturedProjectiles;
     }
 
+    public BreakerBlade getBreakerBlade() {
+        return breakerBlade;
+    }
+
     public float getJumpMaxY() {
         return jumpMaxY;
     }
 
     public void setWeaponType(WeaponType weaponType) {
         this.weaponType = weaponType;
+    }
+
+    public DoodleMode getDoodleMode() {
+        return doodleMode;
+    }
+
+    public WeaponType getWeaponType() {
+        return weaponType;
     }
 
     public Animation<TextureRegion> getExplosionAnimation() {

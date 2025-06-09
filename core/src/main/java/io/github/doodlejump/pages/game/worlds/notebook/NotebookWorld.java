@@ -165,7 +165,7 @@ public class NotebookWorld extends DoodleJumpGame {
         if (jumpOn(bat)) bat.takeShoot();
 
         List<Enemy> enemies = Arrays.asList(casper, bat, butterfly, wizardBoss);
-        hitByEnemies(enemies);
+        hitByEnemies(enemies, delta);
 
         List<Projectile> doodleProjectiles = new ArrayList<>(doodle.getAnimatedProjectiles());
         doodleProjectiles.addAll(doodle.getTexturedProjectiles());

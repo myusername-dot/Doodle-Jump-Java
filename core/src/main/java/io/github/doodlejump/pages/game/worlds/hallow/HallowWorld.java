@@ -104,7 +104,7 @@ public class HallowWorld extends DoodleJumpGame {
         if (jumpOn(unicorn)) unicorn.takeShoot();
 
         List<Enemy> enemies = Arrays.asList(unicorn);
-        hitByEnemies(enemies);
+        hitByEnemies(enemies, delta);
 
         doodle.ifIsFiring(delta);
 

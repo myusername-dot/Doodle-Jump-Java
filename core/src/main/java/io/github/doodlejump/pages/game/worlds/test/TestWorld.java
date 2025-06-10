@@ -42,8 +42,8 @@ public class TestWorld extends DoodleJumpGame {
     float x = 0, y = worldH / 2f;
     float pointLightX = 0; // 240 / 960
 
-    public TestWorld(ApplicationFacade application, float gravity, float wSpeedConst, float score) {
-        super(application, gravity, wSpeedConst, score);
+    public TestWorld(ApplicationFacade application, float gravity, float score) {
+        super(application, gravity, score);
     }
 
     @Override

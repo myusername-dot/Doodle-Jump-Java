@@ -1,6 +1,10 @@
 package io.github.doodlejump.pages.game.entities;
 
 import com.badlogic.gdx.math.Rectangle;
+import io.github.doodlejump.pages.game.debug.MyDebugRenderer;
+
+import static io.github.doodlejump.Application.worldH;
+import static io.github.doodlejump.Application.worldW;
 
 public abstract class Entity {
 
@@ -17,6 +21,42 @@ public abstract class Entity {
         this.width = width;
         this.height = height;
         this.rectangle = rectangle;
+        MyDebugRenderer.shapes.add(rectangle);
+    }
+
+    // ToDo clamp
+    public void translateX(float value) {
+        x += value;
+        rectangle.setX(rectangle.getX() + value);
+    }
+
+    // ToDo clamp
+    public void translateY(float value) {
+        y += value;
+        rectangle.setY(rectangle.getY() + value);
+    }
+
+    public void setX(float x) {
+        float diff = x - this.x;
+        translateX(diff);
+    }
+
+    public void setY(float y) {
+        float diff = y - this.y;
+        translateY(diff);
+    }
+
+    public void setXY(float x, float y) {
+        setX(x);
+        setY(y);
+    }
+
+    public boolean isOnWindow() {
+        return y < worldH && y > -height && x > -width && x < worldW;
+    }
+
+    public boolean rectangleOverlaps(Rectangle doodleRectangle) {
+        return rectangle.overlaps(doodleRectangle);
     }
 
     public float getX() {
@@ -45,36 +85,5 @@ public abstract class Entity {
 
     public float getRectangleY() {
         return rectangle.getY();
-    }
-
-    public boolean rectangleOverlaps(Rectangle doodleRectangle) {
-        return rectangle.overlaps(doodleRectangle);
-    }
-
-    // ToDo clamp
-    public void translateX(float value) {
-        x += value;
-        rectangle.setX(rectangle.getX() + value);
-    }
-
-    // ToDo clamp
-    public void translateY(float value) {
-        y += value;
-        rectangle.setY(rectangle.getY() + value);
-    }
-
-    public void setX(float x) {
-        float diff = x - this.x;
-        translateX(diff);
-    }
-
-    public void setY(float y) {
-        float diff = y - this.y;
-        translateY(diff);
-    }
-
-    public void setXY(float x, float y) {
-        setX(x);
-        setY(y);
     }
 }

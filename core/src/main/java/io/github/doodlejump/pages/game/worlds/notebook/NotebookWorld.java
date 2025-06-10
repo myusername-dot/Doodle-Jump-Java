@@ -42,8 +42,8 @@ public class NotebookWorld extends DoodleJumpGame {
     private int nyanCatCounter;
     private float nyanCatTimer;
 
-    public NotebookWorld(ApplicationFacade application, float gravity, float wSpeedConst, float score) {
-        super(application, gravity, wSpeedConst, score);
+    public NotebookWorld(ApplicationFacade application, float gravity, float score) {
+        super(application, gravity, score);
     }
 
     @Override

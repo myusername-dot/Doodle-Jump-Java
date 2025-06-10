@@ -22,11 +22,6 @@ public abstract class AnimatedSpammedEntity extends AnimatedEntity implements Sp
     }
 
     @Override
-    public boolean isOnWindow() {
-        return y < worldH && y > -height && x > -width && x < worldW;
-    }
-
-    @Override
     public boolean isHigherThan(float y) {
         return this.y > y;
     }

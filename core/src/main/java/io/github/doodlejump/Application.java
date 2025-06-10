@@ -18,7 +18,7 @@ public class Application extends ApplicationAdapter implements ApplicationFacade
     public static final int worldW = 480;
     public static final int worldH = 640;
 
-    public static final boolean debug = false;
+    public static final boolean debug = true;
 
     private static Application application;
 
@@ -50,7 +50,7 @@ public class Application extends ApplicationAdapter implements ApplicationFacade
 
         debugger = new MyDebugRenderer();
 
-        page = new NotebookWorld(application, 9.8f, 500f, 0f);
+        page = new NotebookWorld(application, 9.8f,0f);
         page.create();
     }
 

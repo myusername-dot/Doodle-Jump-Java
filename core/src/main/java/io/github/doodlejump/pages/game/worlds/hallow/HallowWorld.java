@@ -34,8 +34,8 @@ public class HallowWorld extends DoodleJumpGame {
 
     private Unicorn unicorn;
 
-    public HallowWorld(ApplicationFacade application, float gravity, float wSpeedConst, float score) {
-        super(application, gravity, wSpeedConst, score);
+    public HallowWorld(ApplicationFacade application, float gravity, float score) {
+        super(application, gravity, score);
     }
 
     @Override

@@ -9,9 +9,12 @@ import com.badlogic.gdx.math.Shape2D;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 
+import static io.github.doodlejump.Application.worldH;
+import static io.github.doodlejump.Application.worldW;
+
 public class MyDebugRenderer {
 
-    public final static Array<Shape2D> shapes = new Array<Shape2D>();
+    public final static Array<Shape2D> shapes = new Array<>();
 
     protected ShapeRenderer renderer;
 
@@ -35,7 +38,9 @@ public class MyDebugRenderer {
                 //drawPolyline((Polyline) shape2D);
             } else if (shape2D instanceof Rectangle) {
                 Rectangle rectangle = (Rectangle) shape2D;
-                renderer.rect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+                if (isOnWindow(rectangle.x, rectangle.y, rectangle.width, rectangle.height)) {
+                    renderer.rect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+                }
                 //drawRectangle((Rectangle) shape2D);
             }
         }
@@ -69,4 +74,8 @@ public class MyDebugRenderer {
 
     public final Color SHAPE_COLOR = Color.GREEN;
     public final Color JOINT_COLOR = new Color(0.5f, 0.8f, 0.8f, 1);
+
+    public boolean isOnWindow(float x, float y, float width, float height) {
+        return y < worldH && y > -height && x > -width && x < worldW;
+    }
 }

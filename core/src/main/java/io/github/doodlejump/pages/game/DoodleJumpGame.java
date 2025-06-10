@@ -76,11 +76,11 @@ public abstract class DoodleJumpGame implements Page {
     protected Page nextPage;
     protected boolean isFinished;
 
-    public DoodleJumpGame(ApplicationFacade application, float gravity, float wSpeedConst, float score) {
+    public DoodleJumpGame(ApplicationFacade application, float gravity, float score) {
         this.application = application;
         this.gravity = gravity;
-        this.wSpeedConst = wSpeedConst;
         this.score = score;
+        wSpeedConst = 500f;
         platforms = new ArrayList<>();
         effects = new ArrayList<>();
         portals = new ArrayList<>();
@@ -238,7 +238,7 @@ public abstract class DoodleJumpGame implements Page {
             moveOrSpam(portal, worldYSwap);
             if (portal.rectangleOverlaps(doodle.getRectangle())) {
                 if (portal instanceof HallowPortal) {
-                    nextPage = new HallowWorld(application, gravity, wSpeedConst, score);
+                    nextPage = new HallowWorld(application, gravity, score);
                     isFinished = true;
                 }
             }
@@ -386,7 +386,13 @@ public abstract class DoodleJumpGame implements Page {
     protected void drawScoreAndHp(SpriteBatch spriteBatch) {
         scoreFont.draw(spriteBatch, "SCORE: " + (int) score, 0, worldH - 1/*, (float) 1, 1, false*/);
         fpsFont.draw(spriteBatch, "fps: " + Gdx.graphics.getFramesPerSecond(), worldW - 60, worldH - 10);
-        fpsFont.draw(spriteBatch, "velocity: " + doodle.getyMovingVelocity(), worldW - 120, worldH - 50);
+        if (debug) {
+            fpsFont.draw(spriteBatch, "velocityY: " + doodle.getyVelocity(), worldW - 140, worldH - 40);
+            fpsFont.draw(spriteBatch, "speedX: " + doodle.getxSpeed(), worldW - 140, worldH - 70);
+            int projectilesC = doodle.getAnimatedProjectiles().size();
+            projectilesC += doodle.getTexturedProjectiles().size();
+            fpsFont.draw(spriteBatch, "projectiles: " + projectilesC, worldW - 140, worldH - 100);
+        }
 
         for (int i = 0; i < doodle.getHp(); i++) {
             heartSprite.setX(i * heartSprite.getWidth());

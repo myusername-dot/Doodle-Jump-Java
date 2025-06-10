@@ -3,6 +3,7 @@ package io.github.doodlejump.pages.game.worlds.hallow.enemies;
 import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
+import io.github.doodlejump.pages.game.debug.MyDebugRenderer;
 import io.github.doodlejump.pages.game.entities.Doodle;
 import io.github.doodlejump.pages.game.entities.enemies.AnimatedDangeredEnemy;
 import io.github.doodlejump.pages.game.interfaces.XMoving;

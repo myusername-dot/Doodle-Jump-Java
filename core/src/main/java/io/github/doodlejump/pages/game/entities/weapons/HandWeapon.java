@@ -32,7 +32,6 @@ public abstract class HandWeapon extends TexturedEntity {
         this.rightShiftWhenFlip = rightShiftWhenFlip;
         doodleDirection = doodle.getDoodleDirection();
         MyDebugRenderer.shapes.add(polyline);
-        MyDebugRenderer.shapes.add(rectangle);
     }
 
     public void setDirection(Doodle.DoodleDirection doodleDirection) {
